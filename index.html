@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JAK Company - Tests Continus (Clear Chat Amélioré)</title>
+<style>
+/* Styles identiques... */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+min-height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 20px;
+}
+.container {
+background: white;
+border-radius: 20px;
+box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+width: 100%;
+max-width: 900px;
+height: 90vh;
+display: flex;
+flex-direction: column;
+overflow: hidden;
+}
+.header {
+background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+color: white;
+padding: 20px;
+text-align: center;
+position: relative;
+}
+.status {
+position: absolute;
+top: 20px;
+right: 20px;
+padding: 5px 10px;
+border-radius: 15px;
+font-size: 0.8em;
+background: rgba(255,255,255,0.2);
+}
+.status.connected { background: rgba(76, 175, 80, 0.8); }
+.status.disconnected { background: rgba(244, 67, 54, 0.8); }
+.user-info {
+position: absolute;
+top: 20px;
+left: 20px;
+padding: 5px 10px;
+border-radius: 15px;
+font-size: 0.7em;
+background: rgba(255,255,255,0.2);
+max-width: 200px;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.messages {
+flex: 1;
+padding: 20px;
+overflow-y: auto;
+background: #f8f9fa;
+display: flex;
+flex-direction: column;
+gap: 15px;
+}
+.message {
+max-width: 80%;
+padding: 12px 16px;
+border-radius: 18px;
+line-height: 1.4;
+animation: fadeIn 0.3s ease-in;
+}
+.message.user {
+background: #007bff;
+color: white;
+align-self: flex-end;
+border-bottom-right-radius: 4px;
+}
+.message.bot {
+background: white;
+color: #333;
+align-self: flex-start;
+border: 1px solid #e0e0e0;
+border-bottom-left-radius: 4px;
+box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.message.system {
+background: #fff3cd;
+color: #856404;
+align-self: center;
+border: 1px solid #ffeaa7;
+font-size: 0.9em;
+text-align: center;
+}
+.input-container {
+padding: 20px;
+background: white;
+border-top: 1px solid #e0e0e0;
+display: flex;
+flex-direction: column;
+gap: 15px;
+}
+.webhook-config {
+background: #e8f5e8;
+padding: 15px;
+border-radius: 10px;
+border: 2px solid #4caf50;
+}
+.webhook-input {
+width: 100%;
+padding: 8px 12px;
+border: 1px solid #ddd;
+border-radius: 8px;
+font-size: 14px;
+margin-bottom: 10px;
+}
+.controls {
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+margin-bottom: 10px;
+}
+.control-btn {
+padding: 8px 16px;
+border: 1px solid #ddd;
+border-radius: 20px;
+background: white;
+font-size: 0.85em;
+cursor: pointer;
+transition: all 0.3s ease;
+}
+.control-btn:hover { background: #f0f0f0; }
+.control-btn.active {
+background: #4caf50;
+color: white;
+border-color: #4caf50;
+}
+.control-btn.clear {
+background: #ff6b6b;
+color: white;
+border-color: #ff6b6b;
+}
+.control-btn.clear:hover {
+background: #ff5252;
+}
+.input-wrapper {
+display: flex;
+gap: 10px;
+align-items: flex-end;
+}
+#messageInput {
+flex: 1;
+padding: 12px 16px;
+border: 2px solid #e0e0e0;
+border-radius: 20px;
+font-size: 16px;
+resize: none;
+min-height: 20px;
+max-height: 100px;
+}
+.send-btn {
+background: #25d366;
+color: white;
+border: none;
+border-radius: 50%;
+width: 50px;
+height: 50px;
+font-size: 20px;
+cursor: pointer;
+transition: all 0.3s ease;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.send-btn:hover:not(:disabled) {
+background: #128c7e;
+transform: scale(1.05);
+}
+.send-btn:disabled {
+background: #ccc;
+cursor: not-allowed;
+}
+.quick-tests {
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
+margin-bottom: 10px;
+}
+.quick-test {
+padding: 6px 12px;
+background: #e8f5e8;
+border: 1px solid #4caf50;
+border-radius: 15px;
+font-size: 0.8em;
+cursor: pointer;
+transition: all 0.3s ease;
+}
+.quick-test:hover {
+background: #4caf50;
+color: white;
+}
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(10px); }
+to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>🤖 JAK Company - Clear Chat Amélioré</h1>
+<p>Interface avec vraie gestion de nouveaux utilisateurs</p>
+<div class="user-info" id="userInfo">ID: loading...</div>
+<div class="status" id="status">Déconnecté</div>
+</div>
+
+<div class="messages" id="messages">
+<div class="message system">
+🔧 Clear Chat amélioré !<br>
+✅ Efface le chat ET la mémoire serveur<br>
+✅ Génère un nouvel ID utilisateur<br>
+✅ Vraie simulation nouveau client ! 🚀
+</div>
+</div>
+
+<div class="input-container">
+<div class="webhook-config">
+<h3>🔗 Configuration Webhook</h3>
+<input type="text"
+id="webhookUrl"
+class="webhook-input"
+placeholder="URL du webhook n8n"
+value="https://kevinjean.app.n8n.cloud/webhook-test/jak-fixed-webhook">
+</div>
+
+<div class="controls">
+<button class="control-btn" onclick="testConnection()">🔍 Test connexion</button>
+<button class="control-btn clear" onclick="clearChatAndMemory()">🗑️ Clear Chat + Nouvel Utilisateur</button>
+<button class="control-btn" onclick="clearMemoryOnly()">🧠 Clear Mémoire Seulement</button>
+<button class="control-btn" onclick="startConversationDemo()">🎬 Démo conversation</button>
+</div>
+
+<div class="quick-tests">
+<div class="quick-test" onclick="sendQuickTest('je veux être payé pour ma formation')">💰 Paiement</div>
+<div class="quick-test" onclick="sendQuickTest('comment devenir ambassadeur ?')">👥 Ambassadeur</div>
+<div class="quick-test" onclick="sendQuickTest('j&apos;ai une question')">❓ Question IA</div>
+<div class="quick-test" onclick="sendQuickTest('vous êtes nuls')">😠 Agressivité</div>
+<div class="quick-test" onclick="sendQuickTest('je veux parler à un humain')">👤 Humain</div>
+</div>
+
+<div class="input-wrapper">
+<textarea
+id="messageInput"
+placeholder="Tape ton message ici..."
+rows="1"
+onkeydown="handleKeyPress(event)"
+></textarea>
+<button class="send-btn" id="sendBtn" onclick="sendMessage()">
+▶️
+</button>
+</div>
+</div>
+</div>
+
+<script>
+let conversationId = generateNewUserId();
+let isConnected = false;
+
+// Générer un nouvel ID utilisateur
+function generateNewUserId() {
+return 'test_user_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+}
+
+// Mettre à jour l'affichage de l'ID utilisateur
+function updateUserInfo() {
+document.getElementById('userInfo').textContent = `ID: ${conversationId.substring(0, 20)}...`;
+}
+
+// Auto-resize textarea
+document.getElementById('messageInput').addEventListener('input', function() {
+this.style.height = 'auto';
+this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+function updateStatus(connected, message = '') {
+const status = document.getElementById('status');
+isConnected = connected;
+status.textContent = connected ? 'Connecté' : 'Déconnecté';
+status.className = 'status ' + (connected ? 'connected' : 'disconnected');
+
+if (message) {
+addMessage(`🔧 ${message}`, 'system');
+}
+}
+
+function addMessage(content, type, extra = {}) {
+const messages = document.getElementById('messages');
+const messageDiv = document.createElement('div');
+messageDiv.className = `message ${type}`;
+
+let messageContent = content;
+if (extra.timestamp) {
+messageContent += `<div style="font-size: 0.75em; opacity: 0.7; margin-top: 5px;">⏰ ${extra.timestamp}</div>`;
+}
+if (extra.metadata) {
+messageContent += `<div style="font-size: 0.75em; opacity: 0.7; margin-top: 5px;">📊 ${extra.metadata}</div>`;
+}
+
+messageDiv.innerHTML = messageContent;
+messages.appendChild(messageDiv);
+messages.scrollTop = messages.scrollHeight;
+}
+
+async function testConnection() {
+const webhookUrl = document.getElementById('webhookUrl').value.trim();
+if (!webhookUrl) {
+addMessage('❌ Veuillez saisir l\'URL du webhook', 'system');
+return;
+}
+
+try {
+const testPayload = {
+body: {
+text: "test connexion",
+from: conversationId
+}
+};
+
+const response = await fetch(webhookUrl, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(testPayload),
+mode: 'no-cors'
+});
+
+updateStatus(true, 'Connexion testée - Prêt !');
+} catch (error) {
+updateStatus(false, `Erreur: ${error.message}`);
+}
+}
+
+// NOUVEAU : Clear chat ET génère un nouvel utilisateur
+async function clearChatAndMemory() {
+try {
+// 1. Effacer la mémoire côté serveur (si l'API le permet)
+await clearServerMemory();
+
+// 2. Générer un nouvel ID utilisateur
+const oldId = conversationId;
+conversationId = generateNewUserId();
+updateUserInfo();
+
+// 3. Effacer le chat visuel
+document.getElementById('messages').innerHTML = `
+<div class="message system">
+🗑️ Chat effacé ET mémoire serveur vidée !<br>
+👤 Ancien utilisateur : ${oldId.substring(0, 15)}...<br>
+🆕 Nouvel utilisateur : ${conversationId.substring(0, 15)}...<br>
+✅ Prêt pour une nouvelle conversation ! 🚀
+</div>`;
+
+addMessage('🎉 Vous êtes maintenant un nouvel utilisateur !', 'system');
+
+} catch (error) {
+console.error('Erreur lors du clear:', error);
+addMessage('⚠️ Chat effacé localement, nouvel ID généré !', 'system');
+}
+}
+
+// NOUVEAU : Clear mémoire serveur seulement
+async function clearMemoryOnly() {
+try {
+await clearServerMemory();
+addMessage(`🧠 Mémoire serveur effacée pour ${conversationId.substring(0, 15)}...`, 'system');
+} catch (error) {
+addMessage('⚠️ Impossible d\'effacer la mémoire serveur', 'system');
+}
+}
+
+// Fonction pour effacer la mémoire côté serveur
+async function clearServerMemory() {
+const webhookUrl = document.getElementById('webhookUrl').value.trim();
+if (!webhookUrl) return;
+
+// Remplacer par l'URL de votre API Python pour clear memory
+const clearUrl = 'https://langchain-api-kh6o.onrender.com/clear_memory/' + conversationId;
+
+try {
+const response = await fetch(clearUrl, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' }
+});
+
+if (response.ok) {
+console.log('Mémoire serveur effacée avec succès');
+} else {
+console.log('Erreur lors de l\'effacement de la mémoire serveur');
+}
+} catch (error) {
+console.log('Impossible de contacter le serveur pour effacer la mémoire:', error);
+}
+}
+
+async function sendMessage() {
+const input = document.getElementById('messageInput');
+const message = input.value.trim();
+const webhookUrl = document.getElementById('webhookUrl').value.trim();
+
+if (!message) return;
+if (!webhookUrl) {
+addMessage('❌ Configure d\'abord l\'URL du webhook', 'system');
+return;
+}
+
+const sendBtn = document.getElementById('sendBtn');
+sendBtn.disabled = true;
+sendBtn.innerHTML = '⏳';
+
+addMessage(message, 'user', {
+timestamp: new Date().toLocaleTimeString()
+});
+
+input.value = '';
+input.style.height = 'auto';
+
+try {
+const payload = {
+body: {
+text: message,
+from: conversationId,
+timestamp: Date.now()
+}
+};
+
+console.log('Envoi du payload:', JSON.stringify(payload, null, 2));
+
+const response = await fetch(webhookUrl, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(payload)
+});
+
+if (response.ok) {
+let data;
+const contentType = response.headers.get('content-type');
+
+if (contentType && contentType.includes('application/json')) {
+data = await response.json();
+} else {
+const textResponse = await response.text();
+data = { response: textResponse || 'Réponse reçue du workflow' };
+}
+
+const responseText = data.response || data.message || 'Réponse du workflow n8n';
+
+let metadata = 'Workflow n8n';
+if (data.analytics && data.analytics.processing) {
+const proc = data.analytics.processing;
+metadata = `Bloc: ${proc.bloc_matched || 'Aucun'} | Conf: ${proc.confidence || 'N/A'}`;
+}
+
+addMessage(responseText, 'bot', {
+timestamp: new Date().toLocaleTimeString(),
+metadata: metadata
+});
+
+if (data.escalade_info && data.escalade_info.required) {
+addMessage(`🔄 Escalade: ${data.escalade_info.type}`, 'system');
+}
+} else {
+throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+}
+} catch (error) {
+console.error('Erreur complète:', error);
+addMessage(`❌ Erreur: ${error.message}`, 'system');
+} finally {
+sendBtn.disabled = false;
+sendBtn.innerHTML = '▶️';
+input.focus();
+}
+}
+
+function sendQuickTest(message) {
+document.getElementById('messageInput').value = message;
+sendMessage();
+}
+
+function handleKeyPress(event) {
+if (event.key === 'Enter' && !event.shiftKey) {
+event.preventDefault();
+sendMessage();
+}
+}
+
+async function startConversationDemo() {
+const demoMessages = [
+'Bonjour !',
+'je veux être payé pour ma formation',
+'comment devenir ambassadeur ?',
+'merci pour les infos'
+];
+
+addMessage('🎬 Démarrage de la démo conversation...', 'system');
+
+for (let i = 0; i < demoMessages.length; i++) {
+await new Promise(resolve => setTimeout(resolve, 2000));
+document.getElementById('messageInput').value = demoMessages[i];
+await sendMessage();
+await new Promise(resolve => setTimeout(resolve, 1000));
+}
+
+addMessage('🎬 Démo terminée !', 'system');
+}
+
+// Initialisation
+updateUserInfo();
+document.getElementById('messageInput').focus();
+
+// Message d'aide
+setTimeout(() => {
+addMessage(`
+🔧 <strong>Nouvelle fonctionnalité Clear Chat :</strong><br><br>
+🗑️ <strong>Clear Chat + Nouvel Utilisateur</strong> : Efface tout et vous fait passer pour un nouveau client<br>
+🧠 <strong>Clear Mémoire Seulement</strong> : Garde le même ID mais efface l'historique<br><br>
+👤 <strong>Votre ID actuel :</strong> ${conversationId}<br><br>
+✅ Testez les deux options pour voir la différence !
+`, 'system');
+}, 1000);
+</script>
+</body>
+</html>
